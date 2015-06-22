@@ -1,7 +1,7 @@
 var http            = require('http');
 var fs              = require('fs');
 var url             = require("url");
-var bandcamp_url    = url.parse("https://takuakaflip.bandcamp.com/album/re-wrk-vol-i");
+var bandcamp_url    = url.parse(process.argv[2]);
 
 var options = {
     host: bandcamp_url.host,
