@@ -1,0 +1,9 @@
+{
+  "name": "Bandcamp-Downloader",
+  "version": "0.0.1",
+  "dependencies": {
+    "http": "*",
+    "fs": "*",
+    "url": "*"
+  }
+}
