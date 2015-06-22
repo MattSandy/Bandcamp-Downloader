@@ -2,8 +2,11 @@
 Download albums from Bandcamp.com using Node.JS
 
 #Howto
-Just change the url and run.
-
+* Navigate to the directory
+* Change the bandcamp URL
+```
+npm install
+```
 #How are my files saved?
 In your working directory -> Artist -> Album -> Artist - Track.mp3
 
