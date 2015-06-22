@@ -1,5 +1,5 @@
 # Bandcamp-Downloader
-Download albums from Bandcamp.com
+Download albums from Bandcamp.com using Node.JS
 
 #Howto
 Just change the url and run.
