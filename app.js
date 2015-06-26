@@ -30,9 +30,14 @@ function scan_page(data) {
     matches             = data.match(pattern);
     album               = matches[1];
 
-    pattern             = new RegExp(/\[{"encoding_pending(.*?)}]/);
+    pattern             = new RegExp(/\[{(.*?)"encoding_pending(.*?)}]/);
     matches             = data.match(pattern);
-    tracks              = JSON.parse(matches[0]);
+
+    try {
+        tracks          = JSON.parse(matches[0]);
+    } catch (e) {
+        console.warn('Bad user input', matches[0], e);
+    }
 
     //artist directory
     if (!fs.existsSync('./' + artist)){
@@ -43,7 +48,7 @@ function scan_page(data) {
         fs.mkdirSync('./' + artist + "/" + album);
     }
     for(var i=0;i<tracks.length;i++) {
-        track_info = {"artist": artist, "album": album, "track": tracks[i].title, "stream": tracks[i].file["mp3-128"]};
+        track_info = {"id": i, "artist": artist, "album": album, "track": tracks[i].title, "stream": tracks[i].file["mp3-128"]};
         save_track(track_info);
     }
 }
@@ -51,14 +56,31 @@ function save_track(track_info) {
     //console.dir(track_info);
     http.get(track_info.stream, function(res) {
         track_uri = res.headers.location;
-        console.log(track_info.track);
-        console.log(track_uri);
         http.get(track_uri, function(response) {
+            track_info.size = (response.headers['content-length']);
             var folder = './' + track_info.artist + "/" + track_info.album + "/";
             var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
             response.pipe(fs.createWriteStream(folder + file_name));
+            console.log(folder + file_name);
+            console.log(track_info.size);
+            display_progress(track_info);
         })
     }.bind(track_info)).on('error', function(e) {
         console.log("Got error: " + e.message);
     });
+}
+function display_progress(track_info) {
+    var folder = './' + track_info.artist + "/" + track_info.album + "/";
+    var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
+    var stats = fs.statSync(folder + file_name);
+    if(stats.isFile()) {
+        var progress = parseInt(parseFloat(stats["size"] / track_info.size) * 100);
+        console.log(track_info.track + ': ' + progress + '%');
+        if(progress != 100) {
+            setTimeout(function(){display_progress(track_info)}.bind(track_info), 5000);
+        }
+    } else {
+        setTimeout(function(){display_progress(track_info)}.bind(track_info), 5000);
+    }
+
 }
