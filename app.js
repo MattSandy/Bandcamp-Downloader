@@ -39,11 +39,11 @@ function scan_page(data) {
         console.warn('Bad user input', matches[0], e);
     }
 
-    //artist directory
+    //creates artist directory
     if (!fs.existsSync('./' + artist)){
         fs.mkdirSync('./' + artist);
     }
-    //creates the album directory
+    //creates album directory
     if (!fs.existsSync('./' + artist + "/" + album)){
         fs.mkdirSync('./' + artist + "/" + album);
     }
@@ -57,19 +57,25 @@ function save_track(track_info) {
     http.get(track_info.stream, function(res) {
         track_uri = res.headers.location;
         http.get(track_uri, function(response) {
+            //updates track_info with file size
             track_info.size = (response.headers['content-length']);
             var folder = './' + track_info.artist + "/" + track_info.album + "/";
             var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
             response.pipe(fs.createWriteStream(folder + file_name));
+
+            //displays the path and filename
             console.log(folder + file_name);
-            console.log(track_info.size);
-            display_progress(track_info);
+
+            //display percent downloaded for downloads still in progress
+            //timeout is so the filenames are displayed first
+            setTimeout(function(){display_progress(track_info)}.bind(track_info), 5 * 1000);
         })
     }.bind(track_info)).on('error', function(e) {
         console.log("Got error: " + e.message);
     });
 }
 function display_progress(track_info) {
+    //displays the progress by comparing the content-length with filesize on disk
     var folder = './' + track_info.artist + "/" + track_info.album + "/";
     var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
     var stats = fs.statSync(folder + file_name);
