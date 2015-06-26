@@ -1,12 +1,25 @@
 var http            = require('http');
 var fs              = require('fs');
-var url_functions   = require('url');
+
+//static files
 var index           = fs.readFileSync(__dirname + '/index.html');
+var stylesheet      = fs.readFileSync(__dirname + '/style.css');
+var init_js         = fs.readFileSync(__dirname + '/init.js');
 
 //web server
 var app = http.createServer(function(req, res) {
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.end(index);
+    if(req.url=="/") {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.end(index);
+    } else if(req.url=="/style.css") {
+        res.writeHead(200, {'Content-Type': 'text/css'});
+        res.end(stylesheet);
+    } else if(req.url=="/init.js") {
+        res.writeHead(200, {'Content-Type': 'text/javascript'});
+        res.end(init_js);
+    } else {
+        res.end();
+    }
 });
 //sockets for displaying progress
 var io = require('socket.io').listen(app);
@@ -25,7 +38,7 @@ io.on('connection', function(socket) {
     });
 });
 
-app.listen(3000);
+app.listen(3001);
 function init(socket,options) {
 
     var request = http.request(options, function (res) {

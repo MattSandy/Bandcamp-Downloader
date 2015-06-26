@@ -1,0 +1,33 @@
+body, html {
+    font-family: 'Lora', serif;
+    font-size:14pt;
+    letter-spacing: .2px;
+    margin:0em;
+    padding: 0em;
+}
+ul {
+    padding:2em;
+    padding-left: 4em;
+}
+li {
+    list-style: none;
+    margin:1em;
+}
+h1 {
+    margin: 0;
+    margin-bottom: 1em;
+    padding: 2em;
+    background-color:#f6f6f6;
+    text-align: center;
+}
+#bandcamp_url {
+    font-family: 'Lora', serif;
+    padding:1em;
+    text-align: center;
+    display: block;
+    display: block;
+    border: none;
+    width: 100%;
+    text-align: center;
+    font-size: 12pt;
+}
