@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src='/socket.io/socket.io.js'></script>
+    <script>
+        var socket = io();
+
+        socket.on('welcome', function(data) {
+            display_progress(data);
+            // Respond with a message including this clients' id sent from the server
+            socket.emit('i am client', {data: 'foo!', id: data.id});
+        });
+        socket.on('progress', function(data) {
+            display_progress(data);
+        });
+        socket.on('error', console.error.bind(console));
+        socket.on('progress', console.log.bind(console));
+
+        function display_progress(data) {
+            if(data.id===parseInt(data.id)) {
+                if($('#track_' + data.id).length) {
+                    $('#track_' + data.id).html(data.progress);
+                } else {
+                    $('<li id="track_' + data.id + '">' + data.progress + '</li>').appendTo("#tracks");
+                }
+            } else {
+                $('h1').html(data.progress);
+            }
+        }
+        function send_url() {
+            var url = $('#bandcamp_url').val();
+            socket.emit('bandcamp_url', {"url": url});
+        }
+    </script>
+    <script>
+        $(document).ready(function() {
+            $("#bandcamp_url").keyup(function(e) {
+                if(e.keyCode == 13) {
+                    send_url();
+                }
+            });
+        });
+    </script>
+    <link href='http://fonts.googleapis.com/css?family=Lora' rel='stylesheet' type='text/css'>
+    <style type="text/css">
+        body, html {
+            font-family: 'Lora', serif;
+            font-size:14pt;
+            letter-spacing: .2px;
+            margin:0em;
+            padding: 0em;
+        }
+        ul {
+            padding:2em;
+            padding-left: 4em;
+        }
+        li {
+            list-style: none;
+            margin:1em;
+        }
+        h1 {
+            margin: 0;
+            margin-bottom: 1em;
+            padding: 2em;
+            background-color:#f6f6f6;
+            text-align: center;
+        }
+        #bandcamp_url {
+            font-family: 'Lora', serif;
+            padding:1em;
+            text-align: center;
+            display: block;
+            display: block;
+            border: none;
+            width: 100%;
+            text-align: center;
+            font-size: 12pt;
+        }
+    </style>
+</head>
+<body>
+<input type="text" id="bandcamp_url" />
+<h1></h1>
+<ul id='tracks'></ul>
+</body>
+</html>

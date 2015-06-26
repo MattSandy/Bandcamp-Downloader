@@ -1,26 +1,48 @@
 var http            = require('http');
 var fs              = require('fs');
-var url             = require("url");
-var bandcamp_url    = url.parse(process.argv[2]);
+var url_functions   = require('url');
+var index           = fs.readFileSync(__dirname + '/index.html');
 
-var options = {
-    host: bandcamp_url.host,
-    path: bandcamp_url.path
-};
-var request = http.request(options, function (res) {
-    var data = '';
-    res.on('data', function (chunk) {
-        data += chunk;
-    });
-    res.on('end', function () {
-        scan_page(data);
+//web server
+var app = http.createServer(function(req, res) {
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end(index);
+});
+//sockets for displaying progress
+var io = require('socket.io').listen(app);
+io.on('connection', function(socket) {
+    // Use socket to communicate with this particular client only, sending it it's own id
+    socket.on('i am client', console.log);
+    socket.on('bandcamp_url', function (data) {
+        console.log(data);
+        var url_functions = require('url');
+        var bandcamp_url = url_functions.parse(data.url);
+        var options = {
+            host: bandcamp_url.host,
+            path: bandcamp_url.path
+        };
+        init(socket,options);
     });
 });
-request.on('error', function (e) {
-    console.log(e.message);
-});
-request.end();
-function scan_page(data) {
+
+app.listen(3000);
+function init(socket,options) {
+
+    var request = http.request(options, function (res) {
+        var data = '';
+        res.on('data', function (chunk) {
+            data += chunk;
+        });
+        res.on('end', function () {
+            scan_page(socket, data);
+        });
+    });
+    request.on('error', function (e) {
+        console.log(e.message);
+    });
+    request.end();
+}
+function scan_page(socket, data) {
     var pattern         = new RegExp(/artist: \"(.*?)\"\,/);
     var matches         = data.match(pattern);
     var artist          = matches[1];
@@ -28,16 +50,20 @@ function scan_page(data) {
 
     pattern             = new RegExp(/album_title: \"(.*?)\"\,/);
     matches             = data.match(pattern);
-    album               = matches[1];
+    var album           = matches[1];
 
     pattern             = new RegExp(/\[{(.*?)"encoding_pending(.*?)}]/);
     matches             = data.match(pattern);
 
     try {
-        tracks          = JSON.parse(matches[0]);
+        var tracks      = JSON.parse(matches[0]);
     } catch (e) {
         console.warn('Bad user input', matches[0], e);
     }
+
+    //Sends Artist Info to Browser
+    var message = "Downloading Tracks from " + artist + "'s album " + album;
+    socket.emit('progress', { "progress": message, id: socket.id });
 
     //creates artist directory
     if (!fs.existsSync('./' + artist)){
@@ -66,15 +92,14 @@ function save_track(track_info) {
             //displays the path and filename
             console.log(folder + file_name);
 
-            //display percent downloaded for downloads still in progress
-            //timeout is so the filenames are displayed first
-            setTimeout(function(){display_progress(track_info)}.bind(track_info), 5 * 1000);
+            //display percent downloaded
+            setTimeout(function(){send_progress(track_info)}.bind(track_info), 1000);
         })
     }.bind(track_info)).on('error', function(e) {
         console.log("Got error: " + e.message);
     });
 }
-function display_progress(track_info) {
+function send_progress(track_info) {
     //displays the progress by comparing the content-length with filesize on disk
     var folder = './' + track_info.artist + "/" + track_info.album + "/";
     var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
@@ -82,11 +107,13 @@ function display_progress(track_info) {
     if(stats.isFile()) {
         var progress = parseInt(parseFloat(stats["size"] / track_info.size) * 100);
         console.log(track_info.track + ': ' + progress + '%');
+        //send to the browser (id for list element)
+        io.emit('progress', { "id": track_info.id, "progress": track_info.track + ': ' + progress + '%' });
         if(progress != 100) {
-            setTimeout(function(){display_progress(track_info)}.bind(track_info), 5000);
+            setTimeout(function(){send_progress(track_info)}.bind(track_info), 1000);
         }
     } else {
-        setTimeout(function(){display_progress(track_info)}.bind(track_info), 5000);
+        setTimeout(function(){send_progress(track_info)}.bind(track_info), 1000);
     }
 
 }
