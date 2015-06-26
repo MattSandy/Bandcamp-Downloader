@@ -4,6 +4,7 @@
   "dependencies": {
     "http": "*",
     "fs": "*",
-    "url": "*"
+    "url": "*",
+    "socket.io": "*"
   }
 }
