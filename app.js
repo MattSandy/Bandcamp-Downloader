@@ -38,7 +38,7 @@ io.on('connection', function(socket) {
     });
 });
 
-app.listen(3001);
+app.listen(3000);
 function init(socket,options) {
 
     var request = http.request(options, function (res) {
@@ -87,11 +87,15 @@ function scan_page(socket, data) {
         fs.mkdirSync('./' + artist + "/" + album);
     }
     for(var i=0;i<tracks.length;i++) {
-        track_info = {"id": i, "artist": artist, "album": album, "track": tracks[i].title, "stream": tracks[i].file["mp3-128"]};
-        save_track(track_info);
+        try {
+            track_info = {"id": i, "artist": artist, "album": album, "track": tracks[i].title, "stream": tracks[i].file["mp3-128"]};
+            save_track(track_info,socket);
+        } catch (e) {
+            console.log(track_info);
+        }
     }
 }
-function save_track(track_info) {
+function save_track(track_info,socket) {
     //console.dir(track_info);
     http.get(track_info.stream, function(res) {
         track_uri = res.headers.location;
@@ -106,27 +110,27 @@ function save_track(track_info) {
             console.log(folder + file_name);
 
             //display percent downloaded
-            setTimeout(function(){send_progress(track_info)}.bind(track_info), 1000);
+            setTimeout(function(){send_progress(track_info,socket)}.bind(track_info,socket), 1000);
         })
     }.bind(track_info)).on('error', function(e) {
         console.log("Got error: " + e.message);
     });
 }
-function send_progress(track_info) {
+function send_progress(track_info, socket) {
     //displays the progress by comparing the content-length with filesize on disk
     var folder = './' + track_info.artist + "/" + track_info.album + "/";
     var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
     var stats = fs.statSync(folder + file_name);
     if(stats.isFile()) {
         var progress = parseInt(parseFloat(stats["size"] / track_info.size) * 100);
-        console.log(track_info.track + ': ' + progress + '%');
+        //console.log(track_info.track + ': ' + progress + '%');
         //send to the browser (id for list element)
-        io.emit('progress', { "id": track_info.id, "progress": track_info.track + ': ' + progress + '%' });
+        socket.emit('progress', { "id": track_info.id, "progress": track_info.track + ': ' + progress + '%' });
         if(progress != 100) {
-            setTimeout(function(){send_progress(track_info)}.bind(track_info), 1000);
+            setTimeout(function(){send_progress(track_info,socket)}.bind(track_info,socket), 1000);
         }
     } else {
-        setTimeout(function(){send_progress(track_info)}.bind(track_info), 1000);
+        setTimeout(function(){send_progress(track_info,socket)}.bind(track_info,socket), 1000);
     }
 
 }

@@ -1,9 +1,9 @@
 var socket = io();
 
-socket.on('welcome', function(data) {
-    display_progress(data);
+socket.on('init', function(data) {
+    console.log(data);
     // Respond with a message including this clients' id sent from the server
-    socket.emit('i am client', {data: 'foo!', id: data.id});
+    socket.emit('init', {id: data.id});
 });
 socket.on('progress', function(data) {
     display_progress(data);
