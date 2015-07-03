@@ -25,6 +25,7 @@ var app = http.createServer(function(req, res) {
 var io = require('socket.io').listen(app);
 io.on('connection', function(socket) {
     // Use socket to communicate with this particular client only, sending it it's own id
+    socket.emit('progress', { "progress": "Enter a Bandcamp URL Above to Get Started", id: socket.id });
     socket.on('i am client', console.log);
     socket.on('bandcamp_url', function (data) {
         console.log(data);
