@@ -6,6 +6,7 @@
 * Navigate to the directory
 ```
 npm install
+node app.js
 ```
 * Navigate to http://localhost:3000/
 * Enter Album URL and Press Enter

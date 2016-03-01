@@ -2,9 +2,9 @@ var http            = require('http');
 var fs              = require('fs');
 
 //static files
-var index           = fs.readFileSync(__dirname + '/index.html');
-var stylesheet      = fs.readFileSync(__dirname + '/style.css');
-var init_js         = fs.readFileSync(__dirname + '/init.js');
+var index           = fs.readFileSync(__dirname + '/public/index.html');
+var stylesheet      = fs.readFileSync(__dirname + '/public/style.css');
+var init_js         = fs.readFileSync(__dirname + '/public/init.js');
 
 //web server
 var app = http.createServer(function(req, res) {
@@ -79,16 +79,23 @@ function scan_page(socket, data) {
     var message = "Downloading Tracks from " + artist + "'s album " + album;
     socket.emit('progress', { "progress": message, id: socket.id });
 
+    //creates albums directory
+    if (!fs.existsSync('./albums')){
+        fs.mkdirSync('./albums');
+    }
     //creates artist directory
-    if (!fs.existsSync('./' + artist)){
-        fs.mkdirSync('./' + artist);
+    if (!fs.existsSync('./albums/' + artist)){
+        fs.mkdirSync('./albums/' + artist);
     }
     //creates album directory
-    if (!fs.existsSync('./' + artist + "/" + album)){
-        fs.mkdirSync('./' + artist + "/" + album);
+    if (!fs.existsSync('./albums/' + artist + "/" + album)){
+        fs.mkdirSync('./albums/' + artist + "/" + album);
     }
     for(var i=0;i<tracks.length;i++) {
         try {
+            if(tracks[i].file["mp3-128"].substr(0,4)!="http") {
+                tracks[i].file["mp3-128"] = "http:" + tracks[i].file["mp3-128"];
+            }
             track_info = {"id": i, "artist": artist, "album": album, "track": tracks[i].title, "stream": tracks[i].file["mp3-128"]};
             save_track(track_info,socket);
         } catch (e) {
@@ -103,7 +110,7 @@ function save_track(track_info,socket) {
         http.get(track_uri, function(response) {
             //updates track_info with file size
             track_info.size = (response.headers['content-length']);
-            var folder = './' + track_info.artist + "/" + track_info.album + "/";
+            var folder = './albums/' + track_info.artist + "/" + track_info.album + "/";
             var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
             response.pipe(fs.createWriteStream(folder + file_name));
 
@@ -119,7 +126,7 @@ function save_track(track_info,socket) {
 }
 function send_progress(track_info, socket) {
     //displays the progress by comparing the content-length with filesize on disk
-    var folder = './' + track_info.artist + "/" + track_info.album + "/";
+    var folder = './albums/' + track_info.artist + "/" + track_info.album + "/";
     var file_name =  (track_info.artist + " - " + track_info.track + ".mp3").replace(/\//g, "");
     var stats = fs.statSync(folder + file_name);
     if(stats.isFile()) {
