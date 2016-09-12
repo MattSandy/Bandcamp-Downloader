@@ -1,47 +1,63 @@
 var http            = require('http');
 var fs              = require('fs');
+var cli             = false;
+
+if(typeof(process.argv[2])!="undefined") {
+    cli = true;
+    var bandcamp_url = process.argv[2];
+    console.log(bandcamp_url);
+}
 
 //static files
 var index           = fs.readFileSync(__dirname + '/public/index.html');
 var stylesheet      = fs.readFileSync(__dirname + '/public/style.css');
 var init_js         = fs.readFileSync(__dirname + '/public/init.js');
 
-//web server
-var app = http.createServer(function(req, res) {
-    if(req.url=="/") {
-        res.writeHead(200, {'Content-Type': 'text/html'});
-        res.end(index);
-    } else if(req.url=="/style.css") {
-        res.writeHead(200, {'Content-Type': 'text/css'});
-        res.end(stylesheet);
-    } else if(req.url=="/init.js") {
-        res.writeHead(200, {'Content-Type': 'text/javascript'});
-        res.end(init_js);
-    } else {
-        res.end();
-    }
-});
-//sockets for displaying progress
-var io = require('socket.io').listen(app);
-io.on('connection', function(socket) {
-    // Use socket to communicate with this particular client only, sending it it's own id
-    socket.emit('progress', { "progress": "Enter a Bandcamp URL Above to Get Started", id: socket.id });
-    socket.on('i am client', console.log);
-    socket.on('bandcamp_url', function (data) {
-        console.log(data);
-        var url_functions = require('url');
-        var bandcamp_url = url_functions.parse(data.url);
-        var options = {
-            host: bandcamp_url.host,
-            path: bandcamp_url.path
-        };
-        init(socket,options);
+
+if(!cli) {
+    //web server
+    var app = http.createServer(function(req, res) {
+        if(req.url=="/") {
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.end(index);
+        } else if(req.url=="/style.css") {
+            res.writeHead(200, {'Content-Type': 'text/css'});
+            res.end(stylesheet);
+        } else if(req.url=="/init.js") {
+            res.writeHead(200, {'Content-Type': 'text/javascript'});
+            res.end(init_js);
+        } else {
+            res.end();
+        }
     });
-});
-
-app.listen(3000);
+    //sockets for displaying progress
+    var io = require('socket.io').listen(app);
+    io.on('connection', function(socket) {
+        // Use socket to communicate with this particular client only, sending it it's own id
+        socket.emit('progress', { "progress": "Enter a Bandcamp URL Above to Get Started", id: socket.id });
+        socket.on('i am client', console.log);
+        socket.on('bandcamp_url', function (data) {
+            console.log(data);
+            var url_functions = require('url');
+            var bandcamp_url = url_functions.parse(data.url);
+            var options = {
+                host: bandcamp_url.host,
+                path: bandcamp_url.path
+            };
+            init(socket,options);
+        });
+    });
+    app.listen(3000);
+} else {
+    var url_functions = require('url');
+    var bandcamp_url = url_functions.parse(bandcamp_url);
+    var options = {
+        host: bandcamp_url.host,
+        path: bandcamp_url.path
+    };
+    init(null,options);
+}
 function init(socket,options) {
-
     var request = http.request(options, function (res) {
         var data = '';
         res.on('data', function (chunk) {
@@ -52,7 +68,7 @@ function init(socket,options) {
         });
     });
     request.on('error', function (e) {
-        console.log(e.message);
+        console.log("Error on init: " + e.message);
     });
     request.end();
 }
@@ -77,7 +93,11 @@ function scan_page(socket, data) {
 
     //Sends Artist Info to Browser
     var message = "Downloading Tracks from " + artist + "'s album " + album;
-    socket.emit('progress', { "progress": message, id: socket.id });
+    if(socket!=null) {
+        socket.emit('progress', { "progress": message, id: socket.id });
+    } else {
+        console.log(message);
+    }
 
     //creates albums directory
     if (!fs.existsSync('./albums')){
@@ -133,7 +153,9 @@ function send_progress(track_info, socket) {
         var progress = parseInt(parseFloat(stats["size"] / track_info.size) * 100);
         //console.log(track_info.track + ': ' + progress + '%');
         //send to the browser (id for list element)
-        socket.emit('progress', { "id": track_info.id, "progress": track_info.track + ': ' + progress + '%' });
+        if(socket!=null) {
+            socket.emit('progress', { "id": track_info.id, "progress": track_info.track + ': ' + progress + '%' });
+        }
         if(progress != 100) {
             setTimeout(function(){send_progress(track_info,socket)}.bind(track_info,socket), 1000);
         }
